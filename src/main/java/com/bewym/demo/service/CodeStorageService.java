@@ -11,15 +11,30 @@ public class CodeStorageService {
     @Autowired
     private StringRedisTemplate redisTemplate;
 
+    private static final long CODE_EXPIRATION_TIME = 5; // 5分钟
+
     public void saveCode(String phoneNumber, String code) {
-        redisTemplate.opsForValue().set("SMS_CODE:" + phoneNumber, code, 5, TimeUnit.MINUTES);
+        try {
+            redisTemplate.opsForValue().set("SMS_CODE:" + phoneNumber, code, CODE_EXPIRATION_TIME, TimeUnit.MINUTES);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to save code in Redis", e);
+        }
     }
 
     public String getCode(String phoneNumber) {
-        return redisTemplate.opsForValue().get("SMS_CODE:" + phoneNumber);
+        try {
+            return redisTemplate.opsForValue().get("SMS_CODE:" + phoneNumber);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get code from Redis", e);
+        }
     }
 
     public void deleteCode(String phoneNumber) {
-        redisTemplate.delete("SMS_CODE:" + phoneNumber);
+        try {
+            redisTemplate.delete("SMS_CODE:" + phoneNumber);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to delete code from Redis", e);
+        }
     }
 }
+

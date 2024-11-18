@@ -7,25 +7,24 @@ import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 @Controller
 public class UserController {
-    private final UserService userService;
-    private final UserRepository userRepository;
 
-    public UserController(UserService userService, UserRepository userRepository) {
+    private final UserService userService;
+
+    public UserController(UserService userService) {
         this.userService = userService;
-        this.userRepository = userRepository;
     }
+
+    // 初始页面
     @GetMapping("/")
-    public String ShowInitial_Page() {
+    public String showInitialPage() {
         return "initial_page";
     }
 
+    // 表单页面
     @GetMapping("/form")
     public String showSubmitForm(Model model) {
         model.addAttribute("user", new User_one());
@@ -34,25 +33,28 @@ public class UserController {
 
     @PostMapping("/form")
     public String getUserByName(
-            @ModelAttribute("user") User_one user,
+            @ModelAttribute("user") @Valid User_one user,
             BindingResult result,
             Model model) {
         if (result.hasErrors()) {
-            return "form"; // 返回表单页面并显示校验错误
+            return "form";
         }
-        User_one foundUser = userService.findUserByNameAndPassword(user.getName(), user.getPassword());
+
+        User_one foundUser = userService.authenticate(user.getName(), user.getPassword());
         if (foundUser == null) {
             model.addAttribute("error", "用户不存在或密码错误！");
-            return "form"; // 返回表单页面并显示错误信息
+            return "form";
         }
-        return "redirect:/home"; // 重定向到主页
+        return "redirect:/home";
     }
 
+    // 首页
     @GetMapping("/home")
     public String homePage() {
         return "home";
     }
 
+    // 注册页面
     @GetMapping("/register")
     public String register(Model model) {
         model.addAttribute("user", new User_one());
@@ -60,19 +62,25 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public String registerUser(@Valid @ModelAttribute("user") User_one user, BindingResult result, Model model) {
-        if (userService.existsByname(user.getName())) {
-            model.addAttribute("error", "用户名已存在！");
-            return "register";
-        }
+    public String registerUser(
+            @Valid @ModelAttribute("user") User_one user,
+            BindingResult result,
+            Model model) {
         if (result.hasErrors()) {
             model.addAttribute("error", "注册信息无效！");
             return "register";
         }
+
+        if (userService.existsByName(user.getName())) {
+            model.addAttribute("error", "用户名已存在！");
+            return "register";
+        }
+
         userService.register(user);
         return "redirect:/form";
     }
 }
+
 
 
 
